@@ -3,15 +3,16 @@
 # This is a parser to download, unpack, and process patent data from USPTO.
 
 # usage on cli: ./manage.py suck <#no of weeks to process> <starting date in the form yyyymmdd>
-
+# the default date is 2013-1-1
+#
 # It works on dates newer or equal to 2005-01-04
-# before this date, the format (xml keys) is different.
+# before this date, the xml key names are different.
 #
 # The data format before the date 2002-01-01 is significantly different,
 # data are stored in .txt files instead of .xml.
 # The parser is not adapted to this format.
 
-# details of format changes (and .dtd files):
+# details of format changes (and .dtd files) can be found:
 # http://www.uspto.gov/products/xml-resources.jsp
 #
 # TODO: automatically delete .xml files after parsing
@@ -289,7 +290,7 @@ class Command(BaseCommand):
                     patent_obj.save()
 
                     # debugging
-                    print "processing"
+                    print "processing old format"
 
                     claims = xml["PATDOC"]["SDOCL"]["CL"]
                     if type(claims) != list:
@@ -301,4 +302,4 @@ class Command(BaseCommand):
 
 
             # clean up xml
-#           os.removedirs(week_xml)
+            # os.removedirs(week_xml)

@@ -1,0 +1,15 @@
+*.pyc
+*.db
+
+env/*
+db/*
+static/*
+tmp/*
+log/*
+.idea/*
+
+project/settings.py
+
+!.gitkeep
+!tmp/development/*
+

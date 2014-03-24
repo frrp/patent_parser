@@ -1,0 +1,8 @@
+On Linux we can have this run every Monday (1) at 6am by typing crontab -e and then adding:
+
+# min hour dom month dow command
+# 
+0 6 * * 1 ./path/to/script.py args
+
+# in parsing, it would look like this, where date is in the form %YYYY%mm%dd
+# 0 6 * * 1 ./path/to/manage.py suck <date>

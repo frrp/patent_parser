@@ -1,0 +1,7 @@
+django==1.5
+south
+xmltodict
+django-large-data-admin
+django-tastypie
+psycopg2
+

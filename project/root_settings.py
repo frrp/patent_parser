@@ -53,7 +53,7 @@ INSTALLED_APPS = (
     "large_data_admin",
     'tastypie',
 
-    "ma_sucker",
+    "sucker",
 )
 
 

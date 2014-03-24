@@ -5,19 +5,14 @@
 # usage on cli: ./manage.py suck <#no of weeks to process> <starting date in the form yyyymmdd>
 
 # It works on dates newer or equal to 2005-01-04
-# before this date, the format (xml keys) is different - the parser needs more data coverage for this case.
+# before this date, the format (xml keys) is different.
 #
 # The data format before the date 2002-01-01 is significantly different,
 # data are stored in .txt files instead of .xml.
 # The parser is not adapted to this format.
 
-# the data format and file prefixes changed on the following dates: 2012, 12, 04; 2005, 1, 1; 2001, 1, 1
-# details of changes (and .dtd files):
+# details of format changes (and .dtd files):
 # http://www.uspto.gov/products/xml-resources.jsp
-#
-# TODO: (not essential) take care of cases, when we run the parser through one of the change dates,
-# (we need to check every week_str instead of the start_date)
-# right now, we have to run the parser only on the data between the dates of changes
 #
 # TODO: automatically delete .xml files after parsing
 
@@ -33,7 +28,7 @@ import os
 import xmltodict
 
 # using django data models
-from ma_sucker.models import Citation, Patent, Person, Claim
+from sucker.models import Citation, Patent, Person, Claim
 
 # Citation.objects.all().delete()
 
@@ -58,6 +53,7 @@ class Command(BaseCommand):
         # switch for formats, numbers go from newest to oldest
         format = 0
 
+        # same formats, different key names
         if start_date < change_date_12:
             parties = "parties"
             applicant_v = "applicant"
@@ -65,7 +61,7 @@ class Command(BaseCommand):
             citation_v = "citation"
             references_cited = "references-cited"
 
-        else:  # use the new version
+        else:  # use the new names
             parties = "us-parties"
             applicant_v = "us-applicant"
             applicants_v = "us-applicants"
@@ -125,10 +121,12 @@ class Command(BaseCommand):
                         print "E (%s): bad patent format" % (index, )
                         continue
 
+                # parsing part
+                #
                 if format == 0:
                     # the newest format
 
-                    # doc-number starting with 'D' are design patents that we need to filter out
+                    # doc-number starting with 'D' are design patents that we want to filter out
                     if xml["us-patent-grant"]["us-bibliographic-data-grant"]["publication-reference"]["document-id"]["doc-number"].startswith('D'):
                         print "design patent"
                         continue
@@ -164,7 +162,7 @@ class Command(BaseCommand):
                         print "E (%s): missing 'us-parties'" % (index, )
                     else:
                         us_parties = xml["us-patent-grant"]["us-bibliographic-data-grant"][parties]
-                        try:  # inventors were not mandatory element
+                        try:  # inventors were not a mandatory element
                             inventors = us_parties["inventors"]["inventor"]
                             if type(inventors) != list:
                                 inventors = (inventors, )
@@ -217,10 +215,9 @@ class Command(BaseCommand):
                                 obj = Person(
                                     last_name=assignee["addressbook"].get("last-name", ""),
                                     first_name=assignee["addressbook"].get("first-name", ""),
-                                    #last_name="",  # fix this later (very often assignee is organization, no person)
-                                    #first_name="",
                                     organization_name=assignee["addressbook"].get("orgname", ""),
-                                    city="",  # fix this later (city is sometime missing!)
+                                    # TODO: city is sometime missing!
+                                    city="",  
                                     country=assignee["addressbook"]["address"]["country"],
                                 )
                                 obj.save()
@@ -272,7 +269,7 @@ class Command(BaseCommand):
 
                     patent_obj.save()
                 elif format == 1:
-                    # the old format
+                    # TODO: process the data in the old format
 
                     # doc-number starting with 'D' are design patents that we need to filter out
                     if xml["PATDOC"]["SDOBI"]["B100"]["B110"]["DNUM"]["PDAT"].startswith('D'):
@@ -297,127 +294,8 @@ class Command(BaseCommand):
                     claims = xml["PATDOC"]["SDOCL"]["CL"]
                     if type(claims) != list:
                         claims = (claims, )
-                """
-                    for claim in claims:
-                        obj = Claim(
-                            clm_id=claim["CLM"]["@ID"],
-                            text=claim["CLM"]["PARA"]["PTEXT"]["PDAT"],
-                        )
-                        obj.save()
-                        patent_obj.claims.add(obj)
 
-                    if not xml["PATDOC"]["SDOBI"]["B700"]["B720"].has_key("B721"):
-                        print "E (%s): missing 'us-parties'" % (index, )
-                    else:
-                        us_parties = xml["PATDOC"]["SDOBI"]["B700"]["B720"]
-                        try:  # inventors were not mandatory element
-                            inventors = us_parties["B721"]
-                            if type(inventors) != list:
-                                inventors = (inventors, )
-
-                            for inventor in inventors:
-                                obj = Person(
-                                    first_name=inventor["PARTY-US"]["NAM"]["FNM"]["PDAT"],
-                                    last_name=inventor["PARTY-US"]["NAM"]["SNM"]["STEXT"]["PDAT"],
-                                    #organization_name=inventor["PARTY-US"].get("orgname", ""),
-                                    street=inventor["PARTY-US"]["ADR"]["STR"]["PDAT"],
-                                    city=inventor["PARTY-US"]["ADR"]["CITY"]["PDAT"],
-                                    state=inventor["PARTY-US"]["ADR"]["STATE"]["PDAT"],
-                                )
-                                obj.save()
-                                patent_obj.inventors.add(obj)
-                        except KeyError:
-                            print "E (%s): missing 'inventors'" % (index, )
-
-                        applicants = us_parties[applicants_v][applicant_v]
-                        if type(applicants) != list:
-                            applicants = (applicants, )
-
-                        for applicant in applicants:
-                            obj = Person(
-                                last_name=applicant["addressbook"].get("last-name", ""),
-                                first_name=applicant["addressbook"].get("first-name", ""),
-                                organization_name=applicant["addressbook"].get("orgname", ""),
-                                city=applicant["addressbook"]["address"]["city"],
-                                country=applicant["addressbook"]["address"]["country"],
-                            )
-                            obj.save()
-                            patent_obj.applicants.add(obj)
-
-                    if not xml["us-patent-grant"]["us-bibliographic-data-grant"].has_key("assignees"):
-                        print "E (%s): missing 'assignees'" % (index, )
-                    else:
-                        if xml["us-patent-grant"]["us-bibliographic-data-grant"].has_key(parties):
-                            us_parties = xml["us-patent-grant"]["us-bibliographic-data-grant"][parties]
-                            try:
-                                inventors = us_parties["inventors"]["inventor"]
-                            except KeyError:
-                                print "E (%s): missing 'inventors'" % (index, )
-
-                        assignees = xml["us-patent-grant"]["us-bibliographic-data-grant"]["assignees"]["assignee"]
-
-                        if type(assignees) != list:
-                            assignees = (assignees, )
-
-                        for assignee in assignees:
-                            try:
-                                obj = Person(
-                                    last_name=assignee["addressbook"].get("last-name", ""),
-                                    first_name=assignee["addressbook"].get("first-name", ""),
-                                    #last_name="",  # fix this later (very often assignee is organization, no person)
-                                    #first_name="",
-                                    organization_name=assignee["addressbook"].get("orgname", ""),
-                                    city="",  # fix this later (city is sometime missing!)
-                                    country=assignee["addressbook"]["address"]["country"],
-                                )
-                                obj.save()
-                            except KeyError:
-                                print "E (%s): missing 'addressbook' for assignee" % (index, )
-
-                    examiners = xml["us-patent-grant"]["us-bibliographic-data-grant"]["examiners"]
-                    if not examiners.has_key("primary-examiner"):
-                        print "E (%s): missing 'primary-examiner'" % (index, )
-                    else:
-                        obj = Person(
-                            last_name=examiners["primary-examiner"]["last-name"],
-                            first_name=examiners["primary-examiner"]["first-name"],
-                        )
-                        obj.save()
-                        patent_obj.examiners.add(obj)
-                    if not examiners.has_key("assistant-examiner"):
-                        print "E (%s): missing 'assistant-examiner'" % (index, )
-                    else:
-                        obj = Person(
-                            last_name=examiners["assistant-examiner"]["last-name"],
-                            first_name=examiners["assistant-examiner"]["first-name"],
-                        )
-                        obj.save()
-                        patent_obj.examiners.add(obj)
-
-                    if not xml["us-patent-grant"]["us-bibliographic-data-grant"].has_key(references_cited):
-                        print "E (%s): missing 'us-references-cited'" % (index, )
-                    else:
-                        us_references_cited = xml["us-patent-grant"]["us-bibliographic-data-grant"][references_cited]
-                        citations = us_references_cited[citation_v]
-                        for citation in citations:
-                            if type(citation) != xmltodict.OrderedDict:
-                                print "E (%s): bad-type 'citation'" % (index, )
-                                continue
-                            if not citation.has_key("patcit"):
-                                continue
-                            citation = citation["patcit"]["document-id"]
-                            if not (citation.has_key("kind") and citation.has_key("name")):
-                                continue
-                            obj = Citation(
-                                pubdate=citation["date"],
-                                docnum=citation["doc-number"],
-                                type=citation["kind"],
-                                name=citation["name"],
-                            )
-                            obj.save()
-                            patent_obj.citations.add(obj)
-                """
-                    #patent_obj.save()
+                    patent_obj.save()
                 #else
                 #    raise Exception("unknown data format!")
 

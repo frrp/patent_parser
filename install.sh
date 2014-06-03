@@ -1,7 +1,7 @@
 sudo git clone https://github.com/frrp/patent_parser.git /sucker
 
 sudo apt-get update
-sudo apt-get install postgres python-pip python-dev postgresql-server-dev-9.3 postgresql-9.3
+sudo apt-get install python-pip python-dev postgresql-server-dev-9.3 postgresql-9.3
 
 
 sudo su postgres -c "psql -c \"ALTER USER postgres WITH PASSWORD 'pg'\""

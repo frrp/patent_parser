@@ -11,10 +11,15 @@ DEBUG = True
 SITE_ID = 1
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': normpath(PROJECT_ROOT, "db", "default.db")
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'sucker',
+        'USER': 'postgres',
+        'PASSWORD': 'pg',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
 MEDIA_ROOT = normpath(PROJECT_ROOT, "static", "uploads")
 MEDIA_URL = '/static/uploads/'
 STATIC_ROOT = normpath(PROJECT_ROOT, "static", "static")

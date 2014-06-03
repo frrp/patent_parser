@@ -1,0 +1,29 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          sucker
+# Required-Start:    $local_fs $remote_fs $network $named $time
+# Required-Stop:     $local_fs $remote_fs $network $named $time
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start/Stop fastcgi process for django application
+# Description:
+### END INIT INFO
+# This file has been provided by puppet for ram.devel.pool.
+# DON'T EDIT it manually, any changes will be lost
+#
+
+# Replace these three settings.
+
+case "$1" in
+  stop)
+    `ps axf | grep "/usr/bin/python /sucker/manage.py runserver" | grep -v grep | awk '{print "kill -9 " $1}'`
+  ;;
+  start)
+    /sucker/manage.py runserver &
+  ;;
+  restart)
+    $0 stop
+    $0 start
+  ;;
+esac
+
